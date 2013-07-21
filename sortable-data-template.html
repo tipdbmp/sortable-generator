@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html ng-app="SortableTable">
+
+<head>
+    <meta charset="UTF-8">
+
+    <!-- reset/normalize -->
+    <style type="text/css">
+    
+html, body, div, span, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+em, img, strong, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption, tbody, tfoot, thead, tr, th, td { margin: 0; padding: 0; border: 0; outline: 0; font-size: 100%; }
+ol, ul { list-style: none; }
+table { border-collapse: collapse; border-spacing: 0; }
+:focus { outline: 0; }
+button::-moz-focus-inner { padding: 0; border: 0; }
+
+html, body { height: 100%; font: normal 12px/1.3 "Lucida Sans Unicode", Arial, Helvetica, sans-serif; }
+a { outline: none; text-decoration: none; }
+p { margin: 0.5em 0 }
+textarea { overflow: auto; }
+
+/*----------------------------------------------
+	Utility
+----------------------------------------------*/
+
+.clear { clear: both; display: block; margin: 0; padding: 0; }
+.clear-after:after { content: ""; display: block; height: 0; clear: both; visibility: hidden; }
+.float-left { float: left; }
+.float-right { float: right; }
+.align-left { text-align: left; }
+.align-center { text-align: center; }
+.align-right { text-align: right; }
+.relative { position: relative; }
+.dynamic-center { margin: 0 auto; }
+.opacity0 { opacity: 0; position:absolute; }
+.opacity50 { opacity: .50; }
+.clickable { cursor: pointer; }
+.table-center { margin:auto;}
+.hide { display: none; }
+.img { vertical-align: bottom; }
+.row-hidden { display: none !important; }
+
+    </style>
+    
+
+    <style type="text/css">
+        
+body { background: #fff; }
+h3.title { margin: 20px 0px; }
+
+#case-sensitive { vertical-align: text-top; }
+span.case-sensitive-label { font-size: 9pt; }
+
+#filter-box { width: 99.9%; margin: 0px; border: 1px solid #c1bdbd; }
+#filter-box:focus { box-shadow: 0px 0px 4px #c1bdbd; }
+
+#sortable-table { margin-left: auto; margin-right: auto; font-size: Arial; }
+#sortable-table td { padding: 0px 10px; }
+
+#sortable-table thead td { color: blue; cursor: pointer; font-family: Arial; font-size: 12pt; }
+
+#sortable-table tr:nth-child(odd)  { background: #fff; }
+#sortable-table tr:nth-child(even) { background: #fff; }
+
+
+span.highlight { background: yellow; }
+
+    </style> 
+
+    
+<!--    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>-->
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular.min.js"></script>
+<!--    <script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.4/underscore-min.js"></script>-->
+    
+
+    <script>
+    
+var sortable_table = angular.module('SortableTable', []);
+        
+var object_clone = function(obj) {
+    // Handle the 3 simple types, and null or undefined
+    if (null == obj || "object" != typeof obj) return obj;
+
+    // Handle Date
+    if (obj instanceof Date) {
+        var copy = new Date();
+        copy.setTime(obj.getTime());
+        return copy;
+    }
+
+    // Handle Array
+    if (obj instanceof Array) {
+        var copy = [];
+        for (var i = 0, len = obj.length; i < len; i++) {
+            copy[i] = object_clone(obj[i]);
+        }
+        return copy;
+    }
+
+    // Handle Object
+    if (obj instanceof Object) {
+        var copy = {};
+        for (var attr in obj) {
+            if (obj.hasOwnProperty(attr)) copy[attr] = object_clone(obj[attr]);
+        }
+        return copy;
+    }
+
+    throw new Error("Unable to copy obj! Its type isn't supported.");
+};
+
+sortable_table.filter('text_searchy', function() 
+{
+    return function(array, search_value, case_sensitive) 
+    {
+        var i, k, v;
+        var filtered = [];
+        var index, new_obj;
+        var obj, v_copy;
+        
+        if (search_value === undefined || search_value === '') { return array; }
+        
+        for (i = 0; i < array.length; i++)
+        {
+            obj = array[i];
+            for (k in obj) { if (obj.hasOwnProperty(k)) 
+            {
+                v = ''+obj[k];
+                v_copy = v;
+                if (!case_sensitive)
+                {
+                    v = v.toLowerCase();
+                    search_value = search_value.toLowerCase();
+                }
+                
+                index = v.indexOf(search_value);
+                if (index != -1) 
+                { 
+                    v = v_copy;
+                    v =  v.substr(0, index) 
+                      + '<span class="highlight">' 
+                      + v.substr(index, search_value.length)
+                      + '</span>' 
+                      + v.substr(index + search_value.length)
+                      ;
+                    
+                    new_obj = object_clone(obj);
+                    new_obj[k] = v;
+//                    obj[k] = v + '1';
+//                    filtered.push(obj);
+                    filtered.push(new_obj);
+                    
+                    break; 
+                }
+            }}
+        }
+        
+        return filtered;
+    }
+});
+
+//$(document).ready(function()
+//{
+//    'use strict';
+//    console.log('this is the shit =)');
+//});
+    
+    </script>
+    
+    <script>
+    
+sortable_table.controller('RootCtrl', function($scope)
+{
+    $scope.data =
+$#{DATA}#$       
+    ;
+});        
+    
+    </script>
+    
+    <title>$#{NAME}#$</title>
+</head>
+
+<body>
+
+<div id="page">
+<div id="root-ctrl" ng-controller="RootCtrl">
+    <h3 class="align-center title">$#{NAME}#$</h3>
+
+    <span class="case-sensitive-label">case sensitive:</span> <input id="case-sensitive" type="checkbox" ng-model="case_sensitive">
+    <br>
+    <input id="filter-box" type="text" placeholder="filter" ng-model="search_text">
+    <table id="sortable-table">
+        <thead>
+            <tr ng-model="by_what">
+<!--                <td ng-click="by_what='name'; reversed=!reversed;">name</td>-->
+$#{TABLE_HEADERS}#$
+            </tr>
+        </thead>
+        <tr ng-repeat="d in data | orderBy:by_what:reversed | text_searchy:search_text:case_sensitive">
+<!--            <td ng-bind-html-unsafe="d.name"></td>-->
+
+$#{DATA_FIELDS}#$
+        </tr>
+    </table>
+</div>
+</div>    
+    
+</body>
+</html>

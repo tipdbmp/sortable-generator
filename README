@@ -1,0 +1,1 @@
+Generates a simple html page that allowes data (you have to get it from somewhere =)) to be searched (think grep/ack in real-ish [depending on the number of records] time).
