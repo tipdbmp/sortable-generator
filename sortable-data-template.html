@@ -76,7 +76,27 @@ span.highlight { background: yellow; }
     <script>
     
 var sortable_table = angular.module('SortableTable', []);
-        
+
+sortable_table.config(function($routeProvider)
+{
+    $routeProvider
+    .when('/',
+    {
+        controller:  'RootCtrl',
+        templateUrl: 'sortable-table/controllers/root/materials/views/root.ej',
+    })
+    .otherwise({ redirectTo: '/' })
+    ;
+});
+
+sortable_table.filter('reverse', function() 
+{
+    return function(input, uppercase) 
+    {
+        return input.split("").reverse().join("");
+    }
+});
+
 var object_clone = function(obj) {
     // Handle the 3 simple types, and null or undefined
     if (null == obj || "object" != typeof obj) return obj;
@@ -109,52 +129,144 @@ var object_clone = function(obj) {
     throw new Error("Unable to copy obj! Its type isn't supported.");
 };
 
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
+function escapeRegExp(string){
+//  return string.replace(/([.*?=!:{}()|\[\]\/\\])/g, "\\$1");
+    return string;
+}
+
+
+var simple_search = function(filtered, search_value, case_sensitive, obj, k, v)
+{
+    var index, new_obj;
+    var v_copy = v;
+    
+    if (!case_sensitive)
+    {
+        v = v.toLowerCase();
+        search_value = search_value.toLowerCase();
+    }
+    
+    index = v.indexOf(search_value);
+    if (index != -1) 
+    { 
+        v = v_copy;
+        v =  v.substr(0, index) 
+          + '<span class="highlight">' 
+          + v.substr(index, search_value.length)
+          + '</span>' 
+          + v.substr(index + search_value.length)
+          ;
+        
+//        obj[k] = v + '1';
+//        filtered.push(obj);
+        
+        new_obj = object_clone(obj);
+        new_obj[k] = v;
+        filtered.push(new_obj);
+        
+        return true;
+    }
+    return false;
+}
+
+// This shit took a lot of trial and error due to writting it somewhat blindfolded (aka console.log-way),
+// should probably learn how to use a fuckin' debugger... :/
+//
 sortable_table.filter('text_searchy', function() 
 {
     return function(array, search_value, case_sensitive) 
     {
-        var i, k, v;
+        var i, j, k, v;
         var filtered = [];
         var index, new_obj;
         var obj, v_copy;
+        var last_slash_index, re_text, re_modifiers, re_has_g_mod, re, re_a;
         
-        if (search_value === undefined || search_value === '') { return array; }
+        var fields = $#{SEARCHED_FIELDS}#$
+                   ;
+//        fields = ['age', 'phone', 'name'];
+        
+        
+        if (search_value === undefined || search_value === null || search_value === '') { return array; }
         
         for (i = 0; i < array.length; i++)
         {
             obj = array[i];
-            for (k in obj) { if (obj.hasOwnProperty(k)) 
+//            for (k in obj) { if (obj.hasOwnProperty(k) && k.charAt(0) !== '$') 
+            for (j = 0; j < fields.length; j++)
             {
+                k = fields[j];
+//                console.log(k);
                 v = ''+obj[k];
                 v_copy = v;
-                if (!case_sensitive)
-                {
-                    v = v.toLowerCase();
-                    search_value = search_value.toLowerCase();
-                }
                 
-                index = v.indexOf(search_value);
-                if (index != -1) 
-                { 
-                    v = v_copy;
-                    v =  v.substr(0, index) 
-                      + '<span class="highlight">' 
-                      + v.substr(index, search_value.length)
-                      + '</span>' 
-                      + v.substr(index + search_value.length)
-                      ;
+                // We have a regex search if the search_value begins with '/'
+                // and there is another '/' not at index 0 and new RegExp doesn't
+                // throw an exception =)
+                last_slash_index = search_value.lastIndexOf('/');
+                if (search_value.charAt(0) === '/' && last_slash_index != 0)
+                {
+                    re_text      = search_value.substring(1, last_slash_index);
+                    re_modifiers = search_value.substr(last_slash_index + 1);
+                    re_has_g_mod = re_modifiers.indexOf('g') != -1;
+//                        console.log(re_text);
+//                        console.log(re_modifiers);
+                    re_text = escapeRegExp(re_text);
                     
-                    new_obj = object_clone(obj);
-                    new_obj[k] = v;
-//                    obj[k] = v + '1';
-//                    filtered.push(obj);
-                    filtered.push(new_obj);
+                    if (re_text === '') { if (simple_search(filtered, search_value, case_sensitive, obj, k, v)) { break; } }
                     
-                    break; 
+                    try
+                    {
+                        re = new RegExp(re_text, re_modifiers);
+                    } catch(e) 
+                    { 
+                        if (simple_search(filtered, search_value, case_sensitive, obj, k, v)) { break; }
+                    }
+                    
+                    var matched = 0;
+                    while (re_a = re.exec(v))
+                    {
+                        matched = 1;
+                        
+                        index = re_a.index;
+                        var chars_count = re_a[0].length;
+                        
+                        v =  v.substring(0, index) 
+                          + '<span class="highlight">' 
+                          + v.substr(index, chars_count)
+                          + '</span>' 
+                          + v.substr(index + chars_count)
+                          ;
+                        
+                        // xD
+                        re.lastIndex += 
+//                                       index 
+                                     + chars_count 
+                                     + '<span class="highlight">'.length 
+                                     + '</span>'.length
+                                     - 1
+                                     ;
+                        
+                        if (!re_has_g_mod) { break; }
+                    }
+                    
+                    if (matched)
+                    {
+                        new_obj = object_clone(obj);
+                        new_obj[k] = v;
+                        filtered.push(new_obj);
+                        break;
+                    }
                 }
-            }}
+                else 
+                { 
+                    if (simple_search(filtered, search_value, case_sensitive, obj, k, v)) { break; }
+                }
+
+            } // } // end for in
         }
-        
+
         return filtered;
     }
 });

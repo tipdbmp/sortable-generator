@@ -3,32 +3,40 @@ use v5.16;
 use Docopt;
 use File::Slurp;
 use Encode;
+use List::MoreUtils qw|none|;
 
 use Cwd (); use File::Basename ();
 my $__DIR__ = File::Basename::dirname(Cwd::abs_path(__FILE__));
+
+# my $fields = ['A' .. 'D'];
+# my $non_searchable_fields = [];
+# my $searchable_fields = [ grep { my $field = $_; none { $_ eq $field } @$non_searchable_fields } @$fields ];
+# use DDP; p $searchable_fields;
+# exit 1;
 
 
 my $MY_NAME  = __FILE__;
 my $USAGE = <<"END_USAGE";
 Usage:
-    $MY_NAME <data-name> <data-source-file> <fields>... [ --output-filename=<file> ]
+    $MY_NAME <data-name> <data-source-file> <fields>... [--non-searchable-field=<field>... ] [ --output-filename=<file> ]
 
 Options:
-    -o=<file>, --output-filename
+    -o=<file>,  --output-filename
+    -s=<field>, --non-searchable-field
 
 END_USAGE
 
+@ARGV = map { decode('UTF-8', $_) } @ARGV;
+# @ARGV = map { decode('windows-1251', $_) } @ARGV;
 my %op = %{ docopt(doc => $USAGE) };
 # use DDP; p %op;
-$op{'<data-name>'} = decode('UTF-8', $op{'<data-name>'});
-# $op{'<data-name>'} = decode('windows-1251', $op{'<data-name>'});
 
 my $template = read_file("$__DIR__/sortable-data-template.html", bindmode => ':encoding(UTF-8)');
 my $data     = read_file($op{'<data-source-file>'}, binmode => ':encoding(UTF-8)');
 my @fields   = @{ $op{'<fields>'} };
 
 
-# the data is expected to be in the format:
+# the data is expected to be in the format (aka JSON):
 # [
 #     { some: 'data', data: 2 },
 #     { some: 'other', data: 'or something' },
@@ -56,10 +64,14 @@ for my $field (@fields)
     $DATA_FIELDS .= ' ' x (3 * 4) . qq|<td ng-bind-html-unsafe="d.$field"></td>| . "\n";
 }
 
+my $SEARCHED_FIELDS = [ grep { my $field = $_; none { $_ eq $field } @{ $op{'--non-searchable-field'} } } @fields ];
+$SEARCHED_FIELDS    = '[' . join(', ', map { "'$_'" } @$SEARCHED_FIELDS) . ']';
+
 $template =~ s/\$#{NAME}#\$/$op{'<data-name>'}/g;
 $template =~ s/\$#{DATA}#\$/$data/;
 $template =~ s/\$#{TABLE_HEADERS}#\$/$TABLE_HEADERS/;
 $template =~ s/\$#{DATA_FIELDS}#\$/$DATA_FIELDS/;
+$template =~ s/\$#{SEARCHED_FIELDS}#\$/$SEARCHED_FIELDS/;
 
 if ($op{'--output-filename'})
 {
