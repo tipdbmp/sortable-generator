@@ -135,6 +135,7 @@ function escapeRegExp(string){
     return string;
 }
 
+var searchy_filtered_count = 0;
 
 var simple_search = function(filtered, search_value, case_sensitive, obj, k, v)
 {
@@ -267,6 +268,7 @@ sortable_table.filter('text_searchy', function()
             } // } // end for in
         }
 
+        searchy_filtered_count = filtered.length;
         return filtered;
     }
 });
@@ -286,6 +288,8 @@ sortable_table.controller('RootCtrl', function($scope)
     $scope.data =
 $#{DATA}#$       
     ;
+
+    $scope.get_filtered_searchy_count = function() { return searchy_filtered_count; };
 });        
     
     </script>
@@ -315,6 +319,8 @@ $#{TABLE_HEADERS}#$
 $#{DATA_FIELDS}#$
         </tr>
     </table>
+    <br>
+     Matching / Total: {{ get_filtered_searchy_count() }} / {{ data.length }}
 </div>
 </div>    
     

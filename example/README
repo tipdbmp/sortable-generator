@@ -2,4 +2,4 @@ The data for the example is from this wikipedia article: https://en.wikipedia.or
 
 The file popes.html was generated with:
 
-$ perl sortable-data-generator.pl Popes example/popes.json Numerical_order Pontificate Portrait Name Personal_name Place_of_birth Notes -s Portrait --output-filename example/popes.html
+$ perl sortable-data-generator.pl Popes example/popes.json Numerical_order Pontificate Portrait Name Personal_name Place_of_birth Notes -s Portrait -o example/popes.html

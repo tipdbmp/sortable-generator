@@ -18,18 +18,20 @@ my $__DIR__ = File::Basename::dirname(Cwd::abs_path(__FILE__));
 my $MY_NAME  = __FILE__;
 my $USAGE = <<"END_USAGE";
 Usage:
-    $MY_NAME <data-name> <data-source-file> <fields>... [--non-searchable-field=<field>... ] [ --output-filename=<file> ]
+    $MY_NAME <data-name> <data-source-file> <fields>...  [--non-searchable-field=<field>... ] [--output-filename <output-file>]
 
 Options:
-    -o=<file>,  --output-filename
     -s=<field>, --non-searchable-field
+    -o <output-file>, --output-filename
 
 END_USAGE
+
+    # -o=<file>,  --output-filename
 
 @ARGV = map { decode('UTF-8', $_) } @ARGV;
 # @ARGV = map { decode('windows-1251', $_) } @ARGV;
 my %op = %{ docopt(doc => $USAGE) };
-# use DDP; p %op;
+# use DDP; p %op; exit 1;
 
 my $template = read_file("$__DIR__/sortable-data-template.html", bindmode => ':encoding(UTF-8)');
 my $data     = read_file($op{'<data-source-file>'}, binmode => ':encoding(UTF-8)');
